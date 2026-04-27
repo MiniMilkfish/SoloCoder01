@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FC经典坦克大战</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>FC经典坦克大战</h1>
+            <div class="game-info">
+                <div class="player-info">
+                    <div class="player1-info">
+                        <span>玩家1: </span>
+                        <span id="player1-score">0</span>
+                        <span class="health">血量: <span id="player1-health">3</span></span>
+                        <span class="lives">生命: <span id="player1-lives">3</span></span>
+                    </div>
+                    <div class="player2-info">
+                        <span>玩家2: </span>
+                        <span id="player2-score">0</span>
+                        <span class="health">血量: <span id="player2-health">3</span></span>
+                        <span class="lives">生命: <span id="player2-lives">3</span></span>
+                    </div>
+                </div>
+                <div class="level-info">
+                    <span>关卡: <span id="current-level">1</span></span>
+                    <span>剩余敌人: <span id="remaining-enemies">20</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="520" height="520"></canvas>
+            
+            <!-- 开始界面 -->
+            <div id="startScreen" class="overlay-screen">
+                <div class="screen-content">
+                    <h2>FC经典坦克大战</h2>
+                    <p class="subtitle">纯网页版 - 原生代码实现</p>
+                    <div class="controls-info">
+                        <h3>操作说明</h3>
+                        <div class="player-controls">
+                            <div class="player1-controls">
+                                <h4>玩家1</h4>
+                                <p>W - 上 | S - 下</p>
+                                <p>A - 左 | D - 右</p>
+                                <p>空格键 - 射击</p>
+                            </div>
+                            <div class="player2-controls">
+                                <h4>玩家2</h4>
+                                <p>↑ - 上 | ↓ - 下</p>
+                                <p>← - 左 | → - 右</p>
+                                <p>0 - 射击</p>
+                            </div>
+                        </div>
+                        <p class="other-controls">P - 暂停游戏 | R - 重新开始</p>
+                    </div>
+                    <button id="startButton" class="game-button">开始游戏</button>
+                    <button id="twoPlayerButton" class="game-button">双人模式</button>
+                </div>
+            </div>
+            
+            <!-- 暂停界面 -->
+            <div id="pauseScreen" class="overlay-screen hidden">
+                <div class="screen-content">
+                    <h2>游戏暂停</h2>
+                    <button id="resumeButton" class="game-button">继续游戏</button>
+                    <button id="restartButton" class="game-button">重新开始</button>
+                </div>
+            </div>
+            
+            <!-- 游戏结束界面 -->
+            <div id="gameOverScreen" class="overlay-screen hidden">
+                <div class="screen-content">
+                    <h2 id="gameOverTitle">游戏结束</h2>
+                    <p id="gameOverMessage">基地被摧毁！</p>
+                    <div class="final-score">
+                        <p>最终得分</p>
+                        <p>玩家1: <span id="finalPlayer1Score">0</span></p>
+                        <p id="finalPlayer2Score" class="hidden">玩家2: <span>0</span></p>
+                    </div>
+                    <button id="gameOverRestartButton" class="game-button">重新开始</button>
+                </div>
+            </div>
+            
+            <!-- 关卡完成界面 -->
+            <div id="levelCompleteScreen" class="overlay-screen hidden">
+                <div class="screen-content">
+                    <h2>关卡完成！</h2>
+                    <p>进入下一关</p>
+                    <button id="nextLevelButton" class="game-button">下一关</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-footer">
+            <p>按 P 暂停游戏 | 按 R 重新开始 | 基地被摧毁游戏结束</p>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
