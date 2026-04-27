@@ -338,35 +338,107 @@ class TankGame {
     
     spawnEnemy() {
         if (this.enemiesToSpawn.length === 0) return;
+        if (this.enemies.length >= 4) return; // 最多同时存在4个敌人
         
-        const spawnPoint = CONFIG.SPAWN_POINTS[this.enemySpawnPoint];
-        const tankType = this.enemiesToSpawn.shift();
-        
-        // 检查生成点是否被占用
-        const x = spawnPoint.x * CONFIG.TILE_SIZE;
-        const y = spawnPoint.y * CONFIG.TILE_SIZE;
-        
-        if (!this.isPositionOccupied(x, y)) {
-            const enemy = new Tank(x, y, tankType, this);
-            this.enemies.push(enemy);
-        } else {
-            // 如果被占用，放回到队列末尾
-            this.enemiesToSpawn.unshift(tankType);
+        // 尝试在所有生成点中找一个可用的
+        for (let i = 0; i < CONFIG.SPAWN_POINTS.length; i++) {
+            const spawnIndex = (this.enemySpawnPoint + i) % CONFIG.SPAWN_POINTS.length;
+            const spawnPoint = CONFIG.SPAWN_POINTS[spawnIndex];
+            
+            const x = spawnPoint.x * CONFIG.TILE_SIZE;
+            const y = spawnPoint.y * CONFIG.TILE_SIZE;
+            
+            if (!this.isPositionOccupied(x, y)) {
+                const tankType = this.enemiesToSpawn.shift();
+                const enemy = new Tank(x, y, tankType, this);
+                this.enemies.push(enemy);
+                this.enemySpawnPoint = (spawnIndex + 1) % CONFIG.SPAWN_POINTS.length;
+                return;
+            }
         }
         
-        // 轮换生成点
-        this.enemySpawnPoint = (this.enemySpawnPoint + 1) % CONFIG.SPAWN_POINTS.length;
+        // 如果所有生成点都被占用，什么都不做，下一次再尝试
+        // 不把敌人放回队列，避免无限循环
     }
     
     isPositionOccupied(x, y) {
+        const margin = 2;
         const checkCollision = (tank) => {
             return this.checkBoxCollision(
-                x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE,
-                tank.x, tank.y, tank.width, tank.height
+                x + margin, y + margin, 
+                CONFIG.TILE_SIZE - margin * 2, CONFIG.TILE_SIZE - margin * 2,
+                tank.x + margin, tank.y + margin, 
+                tank.width - margin * 2, tank.height - margin * 2
             );
         };
         
         return this.players.some(checkCollision) || this.enemies.some(checkCollision);
+    }
+    
+    separateOverlappingTanks() {
+        const allTanks = [...this.players, ...this.game.enemies];
+        const margin = 2;
+        
+        for (let i = 0; i < allTanks.length; i++) {
+            for (let j = i + 1; j < allTanks.length; j++) {
+                const tank1 = allTanks[i];
+                const tank2 = allTanks[j];
+                
+                // 检查是否重叠（使用margin）
+                if (this.checkBoxCollision(
+                    tank1.x + margin, tank1.y + margin,
+                    tank1.width - margin * 2, tank1.height - margin * 2,
+                    tank2.x + margin, tank2.y + margin,
+                    tank2.width - margin * 2, tank2.height - margin * 2
+                )) {
+                    // 计算分离向量
+                    const dx = (tank1.x + tank1.width / 2) - (tank2.x + tank2.width / 2);
+                    const dy = (tank1.y + tank1.height / 2) - (tank2.y + tank2.height / 2);
+                    
+                    // 计算重叠量
+                    const overlapX = (tank1.width / 2 + tank2.width / 2) - Math.abs(dx) + margin * 2;
+                    const overlapY = (tank1.height / 2 + tank2.height / 2) - Math.abs(dy) + margin * 2;
+                    
+                    // 选择分离方向
+                    if (overlapX < overlapY) {
+                        // 水平分离
+                        const separation = overlapX / 2 + 1;
+                        if (dx > 0) {
+                            tank1.x += separation;
+                            tank2.x -= separation;
+                        } else {
+                            tank1.x -= separation;
+                            tank2.x += separation;
+                        }
+                    } else {
+                        // 垂直分离
+                        const separation = overlapY / 2 + 1;
+                        if (dy > 0) {
+                            tank1.y += separation;
+                            tank2.y -= separation;
+                        } else {
+                            tank1.y -= separation;
+                            tank2.y += separation;
+                        }
+                    }
+                    
+                    // 确保坦克在边界内
+                    this.clampTankPosition(tank1);
+                    this.clampTankPosition(tank2);
+                }
+            }
+        }
+    }
+    
+    clampTankPosition(tank) {
+        if (tank.x < 0) tank.x = 0;
+        if (tank.x + tank.width > CONFIG.CANVAS_SIZE) {
+            tank.x = CONFIG.CANVAS_SIZE - tank.width;
+        }
+        if (tank.y < 0) tank.y = 0;
+        if (tank.y + tank.height > CONFIG.CANVAS_SIZE) {
+            tank.y = CONFIG.CANVAS_SIZE - tank.height;
+        }
     }
     
     pauseGame() {
@@ -647,6 +719,9 @@ class TankGame {
         
         // 移除死亡的敌人
         this.enemies = this.enemies.filter(enemy => !enemy.dead);
+        
+        // 检查并分离重叠的坦克（防御性措施）
+        this.separateOverlappingTanks();
         
         // 更新子弹
         this.bullets.forEach(bullet => {
@@ -1051,13 +1126,15 @@ class Tank {
         this.aiMoveTimer++;
         this.aiShootTimer++;
         
-        // 随机改变方向
-        if (this.aiMoveTimer >= this.aiMoveInterval) {
+        // 定期改变方向（或被阻挡时改变）
+        const shouldChangeDirection = this.aiMoveTimer >= this.aiMoveInterval;
+        
+        if (shouldChangeDirection) {
             this.aiMoveTimer = 0;
             this.aiMoveInterval = 60 + Math.random() * 120;
             
-            // 有70%的概率朝向玩家
-            if (Math.random() < 0.7 && this.game.players.length > 0) {
+            // 有50%的概率朝向玩家（降低概率，避免死磕）
+            if (Math.random() < 0.5 && this.game.players.length > 0) {
                 const target = this.game.players[Math.floor(Math.random() * this.game.players.length)];
                 this.direction = this.getDirectionToTarget(target);
             } else {
@@ -1079,8 +1156,19 @@ class Tank {
             this.x += dx;
             this.y += dy;
         } else {
-            // 不能移动，改变方向
-            this.direction = Math.floor(Math.random() * 4);
+            // 不能移动，立即改变方向并重置计时器
+            const currentDir = this.direction;
+            const availableDirs = [];
+            for (let i = 0; i < 4; i++) {
+                if (i !== currentDir) {
+                    availableDirs.push(i);
+                }
+            }
+            
+            // 随机选择一个不同的方向
+            this.direction = availableDirs[Math.floor(Math.random() * availableDirs.length)];
+            this.aiMoveTimer = 0;
+            this.aiMoveInterval = 30 + Math.random() * 60; // 更短的间隔，更快尝试新方向
         }
         
         // 尝试射击
@@ -1089,8 +1177,8 @@ class Tank {
             this.aiShootInterval = 30 + Math.random() * 60;
             
             if (this.canShoot) {
-                // 有80%的概率射击
-                if (Math.random() < 0.8) {
+                // 有70%的概率射击
+                if (Math.random() < 0.7) {
                     this.shoot();
                 }
             }
@@ -1133,14 +1221,18 @@ class Tank {
             }
         }
         
-        // 检查与其他坦克的碰撞
+        // 检查与其他坦克的碰撞（使用较大的margin确保不会重叠）
         const allTanks = [...this.game.players, ...this.game.enemies];
+        const margin = 3; // 增加margin，更严格的碰撞检测
         for (const tank of allTanks) {
             if (tank === this) continue;
             
+            // 检查新位置与其他坦克的当前位置是否碰撞
             if (this.game.checkBoxCollision(
-                newX, newY, this.width, this.height,
-                tank.x, tank.y, tank.width, tank.height
+                newX + margin, newY + margin, 
+                this.width - margin * 2, this.height - margin * 2,
+                tank.x + margin, tank.y + margin, 
+                tank.width - margin * 2, tank.height - margin * 2
             )) {
                 return false;
             }
