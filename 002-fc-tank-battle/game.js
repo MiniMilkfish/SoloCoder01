@@ -376,7 +376,7 @@ class TankGame {
     }
     
     separateOverlappingTanks() {
-        const allTanks = [...this.players, ...this.game.enemies];
+        const allTanks = [...this.players, ...this.enemies];
         const margin = 2;
         
         for (let i = 0; i < allTanks.length; i++) {
