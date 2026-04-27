@@ -1183,6 +1183,9 @@ class Tank {
                 }
             }
         }
+        
+        // 对齐到网格（防止卡在地形中）
+        this.snapToGrid();
     }
     
     getDirectionToTarget(target) {
@@ -1206,16 +1209,26 @@ class Tank {
             return false;
         }
         
-        // 检查地图碰撞
-        const corners = [
+        // 检查地图碰撞 - 使用更多的检测点，包括边缘中点
+        const halfWidth = this.width / 2;
+        const halfHeight = this.height / 2;
+        
+        // 检测点：4个角 + 4个边中点（总共8个点）
+        const checkPoints = [
+            // 四个角
             {x: newX + 2, y: newY + 2},
             {x: newX + this.width - 2, y: newY + 2},
             {x: newX + 2, y: newY + this.height - 2},
-            {x: newX + this.width - 2, y: newY + this.height - 2}
+            {x: newX + this.width - 2, y: newY + this.height - 2},
+            // 四个边中点
+            {x: newX + halfWidth, y: newY + 2},           // 上边中点
+            {x: newX + halfWidth, y: newY + this.height - 2}, // 下边中点
+            {x: newX + 2, y: newY + halfHeight},           // 左边中点
+            {x: newX + this.width - 2, y: newY + halfHeight}  // 右边中点
         ];
         
-        for (const corner of corners) {
-            const tile = this.game.getTileAt(corner.x, corner.y);
+        for (const point of checkPoints) {
+            const tile = this.game.getTileAt(point.x, point.y);
             if (this.game.isTileBlocking(tile)) {
                 return false;
             }
@@ -1246,12 +1259,114 @@ class Tank {
         const gridX = Math.round(this.x / CONFIG.TILE_SIZE) * CONFIG.TILE_SIZE;
         const gridY = Math.round(this.y / CONFIG.TILE_SIZE) * CONFIG.TILE_SIZE;
         
-        // 只有当离网格很近时才对齐
-        if (Math.abs(this.x - gridX) < this.speed) {
-            this.x = gridX;
+        // 检查对齐后的位置是否可行
+        const dx = gridX - this.x;
+        const dy = gridY - this.y;
+        
+        // 首先检查当前位置是否有碰撞（如果有，说明卡在地形中）
+        if (!this.canMove(0, 0)) {
+            this.fixStuckPosition();
+            return;
         }
-        if (Math.abs(this.y - gridY) < this.speed) {
-            this.y = gridY;
+        
+        // 只有当离网格很近时才对齐，并且对齐后的位置是可行的
+        if (Math.abs(dx) < this.speed * 2) {
+            // 尝试对齐X轴
+            if (this.canMove(dx, 0)) {
+                this.x = gridX;
+            }
+        }
+        
+        if (Math.abs(dy) < this.speed * 2) {
+            // 尝试对齐Y轴
+            if (this.canMove(0, dy)) {
+                this.y = gridY;
+            }
+        }
+    }
+    
+    fixStuckPosition() {
+        // 检查当前位置是否与地形重叠
+        const halfWidth = this.width / 2;
+        const halfHeight = this.height / 2;
+        
+        const checkPoints = [
+            {x: this.x + 2, y: this.y + 2},
+            {x: this.x + this.width - 2, y: this.y + 2},
+            {x: this.x + 2, y: this.y + this.height - 2},
+            {x: this.x + this.width - 2, y: this.y + this.height - 2},
+            {x: this.x + halfWidth, y: this.y + 2},
+            {x: this.x + halfWidth, y: this.y + this.height - 2},
+            {x: this.x + 2, y: this.y + halfHeight},
+            {x: this.x + this.width - 2, y: this.y + halfHeight}
+        ];
+        
+        let isStuck = false;
+        for (const point of checkPoints) {
+            const tile = this.game.getTileAt(point.x, point.y);
+            if (this.game.isTileBlocking(tile)) {
+                isStuck = true;
+                break;
+            }
+        }
+        
+        if (isStuck) {
+            // 尝试找到附近的可行位置
+            const gridX = Math.round(this.x / CONFIG.TILE_SIZE) * CONFIG.TILE_SIZE;
+            const gridY = Math.round(this.y / CONFIG.TILE_SIZE) * CONFIG.TILE_SIZE;
+            
+            // 尝试对齐到网格位置
+            const originalX = this.x;
+            const originalY = this.y;
+            
+            // 尝试8个方向的网格位置
+            const offsets = [
+                {dx: 0, dy: 0},
+                {dx: -CONFIG.TILE_SIZE, dy: 0},
+                {dx: CONFIG.TILE_SIZE, dy: 0},
+                {dx: 0, dy: -CONFIG.TILE_SIZE},
+                {dx: 0, dy: CONFIG.TILE_SIZE},
+                {dx: -CONFIG.TILE_SIZE, dy: -CONFIG.TILE_SIZE},
+                {dx: CONFIG.TILE_SIZE, dy: -CONFIG.TILE_SIZE},
+                {dx: -CONFIG.TILE_SIZE, dy: CONFIG.TILE_SIZE},
+                {dx: CONFIG.TILE_SIZE, dy: CONFIG.TILE_SIZE}
+            ];
+            
+            for (const offset of offsets) {
+                const testX = gridX + offset.dx;
+                const testY = gridY + offset.dy;
+                
+                // 检查这个位置是否在边界内
+                if (testX >= 0 && testX + this.width <= CONFIG.CANVAS_SIZE &&
+                    testY >= 0 && testY + this.height <= CONFIG.CANVAS_SIZE) {
+                    
+                    // 临时移动到这个位置检查
+                    const dx = testX - this.x;
+                    const dy = testY - this.y;
+                    
+                    if (this.canMove(dx, dy)) {
+                        this.x = testX;
+                        this.y = testY;
+                        return;
+                    }
+                }
+            }
+            
+            // 如果找不到更好的位置，尝试向可用方向移动一小步
+            const directions = [
+                {dx: -this.speed, dy: 0},
+                {dx: this.speed, dy: 0},
+                {dx: 0, dy: -this.speed},
+                {dx: 0, dy: this.speed}
+            ];
+            
+            for (const dir of directions) {
+                if (this.canMove(dir.dx, dir.dy)) {
+                    this.x += dir.dx;
+                    this.y += dir.dy;
+                    return;
+                }
+            }
         }
     }
     
