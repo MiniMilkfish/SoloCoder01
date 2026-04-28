@@ -1,0 +1,549 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.game-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.game-header {
+    width: 100%;
+    text-align: center;
+    z-index: 10;
+}
+
+.game-title {
+    color: #ffd700;
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px #ffd700, 0 0 20px #ffa500, 0 0 30px #ff8c00;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px #ffd700, 0 0 20px #ffa500, 0 0 30px #ff8c00;
+    }
+    to {
+        text-shadow: 0 0 15px #ffd700, 0 0 25px #ffa500, 0 0 35px #ff8c00;
+    }
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    border: 2px solid #4a4a6a;
+}
+
+.player-info {
+    flex: 1;
+    text-align: center;
+}
+
+.player-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.player1 {
+    color: #00ffff;
+    text-shadow: 0 0 5px #00ffff;
+}
+
+.player2 {
+    color: #ff69b4;
+    text-shadow: 0 0 5px #ff69b4;
+}
+
+.player-score, .player-lives {
+    color: #e0e0e0;
+    font-size: 1rem;
+    margin: 5px 0;
+}
+
+.game-timer {
+    flex: 1;
+    text-align: center;
+}
+
+.timer-label {
+    color: #ffd700;
+    font-size: 1rem;
+    margin-bottom: 5px;
+}
+
+.timer-value {
+    color: #ff4444;
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px #ff4444;
+}
+
+.game-board-wrapper {
+    position: relative;
+    z-index: 5;
+}
+
+.game-board {
+    display: grid;
+    background: #000;
+    border: 4px solid #4a4a6a;
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(74, 74, 106, 0.5);
+}
+
+.cell {
+    width: 25px;
+    height: 25px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.wall {
+    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%);
+    border: 1px solid #6a6a8a;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background: #ffff00;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ffff00;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+.power-pellet {
+    width: 16px;
+    height: 16px;
+    background: #ff00ff;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+    animation: powerPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes powerPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+    }
+    50% {
+        transform: scale(1.3);
+        box-shadow: 0 0 15px #ff00ff, 0 0 25px #ff00ff;
+    }
+}
+
+.speed-boost {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, #00ff00, #00cc00);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.freeze {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, #00ffff, #00ccff);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+.invincibility {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, #ffd700, #ffaa00);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: starGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes starGlow {
+    from {
+        filter: brightness(1);
+        box-shadow: 0 0 5px #ffd700;
+    }
+    to {
+        filter: brightness(1.5);
+        box-shadow: 0 0 15px #ffd700;
+    }
+}
+
+.player {
+    position: absolute;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    transition: transform 0.05s linear;
+    z-index: 10;
+}
+
+.player1-body {
+    background: radial-gradient(circle, #00ffff 0%, #0099cc 100%);
+    box-shadow: 0 0 10px #00ffff, inset 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.player2-body {
+    background: radial-gradient(circle, #ff69b4 0%, #cc3399 100%);
+    box-shadow: 0 0 10px #ff69b4, inset 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.player::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 12px;
+    width: 10px;
+    height: 10px;
+    background: #000;
+    border-radius: 50%;
+}
+
+.player::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 14px;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.ghost {
+    position: absolute;
+    width: 23px;
+    height: 23px;
+    border-radius: 50% 50% 10% 10%;
+    z-index: 9;
+    transition: transform 0.05s linear;
+}
+
+.ghost-red {
+    background: linear-gradient(to bottom, #ff4444 0%, #cc0000 100%);
+    box-shadow: 0 0 8px #ff4444;
+}
+
+.ghost-pink {
+    background: linear-gradient(to bottom, #ff99cc 0%, #ff66aa 100%);
+    box-shadow: 0 0 8px #ff99cc;
+}
+
+.ghost-blue {
+    background: linear-gradient(to bottom, #44ccff 0%, #0099cc 100%);
+    box-shadow: 0 0 8px #44ccff;
+}
+
+.ghost-orange {
+    background: linear-gradient(to bottom, #ff9933 0%, #cc6600 100%);
+    box-shadow: 0 0 8px #ff9933;
+}
+
+.ghost::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 5px;
+    width: 5px;
+    height: 5px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.ghost::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 5px;
+    width: 5px;
+    height: 5px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.ghost-eyes {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    padding: 0 3px;
+}
+
+.ghost-eye {
+    width: 7px;
+    height: 7px;
+    background: #fff;
+    border-radius: 50%;
+    position: relative;
+}
+
+.ghost-eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 4px;
+    height: 4px;
+    background: #000;
+    border-radius: 50%;
+}
+
+.game-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    z-index: 10;
+}
+
+.control-btn {
+    padding: 10px 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%);
+    border: 2px solid #6a6a8a;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.control-btn:hover {
+    background: linear-gradient(135deg, #6a6a8a 0%, #4a4a6a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    border-radius: 10px;
+}
+
+.overlay-content {
+    text-align: center;
+    color: #fff;
+    padding: 40px;
+    background: rgba(26, 26, 46, 0.9);
+    border-radius: 15px;
+    border: 3px solid #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+.overlay-title {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+}
+
+.overlay-message {
+    font-size: 1.2rem;
+    color: #e0e0e0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    .game-title {
+        font-size: 2rem;
+    }
+    
+    .game-info {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .player-info, .game-timer {
+        flex: 1 1 100%;
+    }
+    
+    .cell {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .player, .ghost {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .dot {
+        width: 6px;
+        height: 6px;
+    }
+    
+    .power-pellet {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .control-btn {
+        padding: 8px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .game-title {
+        font-size: 1.5rem;
+    }
+    
+    .cell {
+        width: 15px;
+        height: 15px;
+    }
+    
+    .player, .ghost {
+        width: 13px;
+        height: 13px;
+    }
+    
+    .dot {
+        width: 4px;
+        height: 4px;
+    }
+    
+    .power-pellet {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .game-controls {
+        flex-wrap: wrap;
+    }
+    
+    .control-btn {
+        flex: 1 1 100%;
+        padding: 10px;
+    }
+}
+
+.power-up-effect {
+    animation: powerUpFlash 0.2s ease-in-out;
+}
+
+@keyframes powerUpFlash {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(2);
+    }
+}
+
+.score-popup {
+    position: absolute;
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 1rem;
+    pointer-events: none;
+    animation: scoreFloat 1s ease-out forwards;
+    z-index: 20;
+}
+
+@keyframes scoreFloat {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+}
+
+.invincible {
+    animation: invincibleFlash 0.3s infinite alternate;
+}
+
+@keyframes invincibleFlash {
+    from {
+        opacity: 1;
+        filter: brightness(1);
+    }
+    to {
+        opacity: 0.5;
+        filter: brightness(1.5);
+    }
+}
+
+.speed-boost-active {
+    animation: speedBoost 0.1s infinite alternate;
+}
+
+@keyframes speedBoost {
+    from {
+        box-shadow: 0 0 10px currentColor;
+    }
+    to {
+        box-shadow: 0 0 20px currentColor;
+    }
+}
