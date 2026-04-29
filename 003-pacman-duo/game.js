@@ -417,17 +417,31 @@ class PacmanGame {
         const cellX = Math.round(player.x);
         const cellY = Math.round(player.y);
         
-        const isAtCenter = Math.abs(player.x - cellX) < 0.05 && Math.abs(player.y - cellY) < 0.05;
+        const distToCenterX = Math.abs(player.x - cellX);
+        const distToCenterY = Math.abs(player.y - cellY);
+        
+        const isAtCenter = distToCenterX < 0.1 && distToCenterY < 0.1;
         
         if (isAtCenter) {
             player.x = cellX;
             player.y = cellY;
             
+            if (cellX < 0 || cellX >= this.config.mapWidth) {
+                if (cellX < 0) {
+                    player.x = this.config.mapWidth - 1;
+                } else {
+                    player.x = 0;
+                }
+                return;
+            }
+            
             if (player.nextDirection !== this.directions.none) {
                 const nextX = cellX + player.nextDirection.x;
                 const nextY = cellY + player.nextDirection.y;
                 
-                if (!this.isWall(nextX, nextY)) {
+                const canMove = nextX < 0 || nextX >= this.config.mapWidth || !this.isWall(nextX, nextY);
+                
+                if (canMove) {
                     player.direction = player.nextDirection;
                     player.nextDirection = this.directions.none;
                 }
@@ -436,7 +450,12 @@ class PacmanGame {
             const newDirectionX = cellX + player.direction.x;
             const newDirectionY = cellY + player.direction.y;
             
-            if (this.isWall(newDirectionX, newDirectionY)) {
+            const currentDirectionBlocked = 
+                newDirectionX >= 0 && 
+                newDirectionX < this.config.mapWidth && 
+                this.isWall(newDirectionX, newDirectionY);
+            
+            if (currentDirectionBlocked) {
                 player.direction = this.directions.none;
             }
         }
@@ -446,37 +465,48 @@ class PacmanGame {
         const speed = player.hasSpeedBoost ? player.speed * 2 : player.speed;
         const moveAmount = speed * deltaTime * 60;
         
-        let newX = player.x + player.direction.x * moveAmount;
-        let newY = player.y + player.direction.y * moveAmount;
+        const targetX = player.x + player.direction.x * moveAmount;
+        const targetY = player.y + player.direction.y * moveAmount;
         
         if (player.direction.x !== 0) {
-            const targetCellX = Math.round(newX);
+            const nextCellX = player.direction.x > 0 ? Math.ceil(player.x) : Math.floor(player.x);
+            const wallCheckX = player.direction.x > 0 ? nextCellX : nextCellX - 1;
             
-            if (this.isWall(targetCellX, cellY)) {
-                const wallBoundary = player.direction.x > 0 ? targetCellX - 0.5 : targetCellX + 0.5;
-                if ((player.direction.x > 0 && newX >= wallBoundary) || 
-                    (player.direction.x < 0 && newX <= wallBoundary)) {
-                    newX = wallBoundary;
-                    player.direction = this.directions.none;
+            if (wallCheckX >= 0 && wallCheckX < this.config.mapWidth) {
+                if (this.isWall(wallCheckX, cellY)) {
+                    const wallBoundary = player.direction.x > 0 ? nextCellX - 0.5 : nextCellX + 0.5;
+                    
+                    if ((player.direction.x > 0 && targetX >= wallBoundary) || 
+                        (player.direction.x < 0 && targetX <= wallBoundary)) {
+                        player.x = wallBoundary;
+                        player.direction = this.directions.none;
+                        return;
+                    }
                 }
             }
+            
+            player.x = targetX;
         }
         
         if (player.direction.y !== 0) {
-            const targetCellY = Math.round(newY);
+            const nextCellY = player.direction.y > 0 ? Math.ceil(player.y) : Math.floor(player.y);
+            const wallCheckY = player.direction.y > 0 ? nextCellY : nextCellY - 1;
             
-            if (this.isWall(cellX, targetCellY)) {
-                const wallBoundary = player.direction.y > 0 ? targetCellY - 0.5 : targetCellY + 0.5;
-                if ((player.direction.y > 0 && newY >= wallBoundary) || 
-                    (player.direction.y < 0 && newY <= wallBoundary)) {
-                    newY = wallBoundary;
-                    player.direction = this.directions.none;
+            if (wallCheckY >= 0 && wallCheckY < this.config.mapHeight) {
+                if (this.isWall(cellX, wallCheckY)) {
+                    const wallBoundary = player.direction.y > 0 ? nextCellY - 0.5 : nextCellY + 0.5;
+                    
+                    if ((player.direction.y > 0 && targetY >= wallBoundary) || 
+                        (player.direction.y < 0 && targetY <= wallBoundary)) {
+                        player.y = wallBoundary;
+                        player.direction = this.directions.none;
+                        return;
+                    }
                 }
             }
+            
+            player.y = targetY;
         }
-        
-        player.x = newX;
-        player.y = newY;
         
         if (player.x <= -0.5) player.x = this.config.mapWidth - 0.5;
         if (player.x >= this.config.mapWidth - 0.5) player.x = -0.5;
@@ -486,11 +516,23 @@ class PacmanGame {
         const cellX = Math.round(ghost.x);
         const cellY = Math.round(ghost.y);
         
-        const isAtCenter = Math.abs(ghost.x - cellX) < 0.05 && Math.abs(ghost.y - cellY) < 0.05;
+        const distToCenterX = Math.abs(ghost.x - cellX);
+        const distToCenterY = Math.abs(ghost.y - cellY);
+        
+        const isAtCenter = distToCenterX < 0.1 && distToCenterY < 0.1;
         
         if (isAtCenter) {
             ghost.x = cellX;
             ghost.y = cellY;
+            
+            if (cellX < 0 || cellX >= this.config.mapWidth) {
+                if (cellX < 0) {
+                    ghost.x = this.config.mapWidth - 1;
+                } else {
+                    ghost.x = 0;
+                }
+                return;
+            }
             
             if (ghost.isScared) {
                 ghost.direction = this.getRandomDirection(ghost);
@@ -509,37 +551,48 @@ class PacmanGame {
         const speed = ghost.isScared ? ghost.speed * 0.5 : ghost.speed;
         const moveAmount = speed * deltaTime * 60;
         
-        let newX = ghost.x + ghost.direction.x * moveAmount;
-        let newY = ghost.y + ghost.direction.y * moveAmount;
+        const targetX = ghost.x + ghost.direction.x * moveAmount;
+        const targetY = ghost.y + ghost.direction.y * moveAmount;
         
         if (ghost.direction.x !== 0) {
-            const targetCellX = Math.round(newX);
+            const nextCellX = ghost.direction.x > 0 ? Math.ceil(ghost.x) : Math.floor(ghost.x);
+            const wallCheckX = ghost.direction.x > 0 ? nextCellX : nextCellX - 1;
             
-            if (this.isWall(targetCellX, cellY)) {
-                const wallBoundary = ghost.direction.x > 0 ? targetCellX - 0.5 : targetCellX + 0.5;
-                if ((ghost.direction.x > 0 && newX >= wallBoundary) || 
-                    (ghost.direction.x < 0 && newX <= wallBoundary)) {
-                    newX = wallBoundary;
-                    ghost.direction = this.getRandomDirection(ghost);
+            if (wallCheckX >= 0 && wallCheckX < this.config.mapWidth) {
+                if (this.isWall(wallCheckX, cellY)) {
+                    const wallBoundary = ghost.direction.x > 0 ? nextCellX - 0.5 : nextCellX + 0.5;
+                    
+                    if ((ghost.direction.x > 0 && targetX >= wallBoundary) || 
+                        (ghost.direction.x < 0 && targetX <= wallBoundary)) {
+                        ghost.x = wallBoundary;
+                        ghost.direction = this.getRandomDirection(ghost);
+                        return;
+                    }
                 }
             }
+            
+            ghost.x = targetX;
         }
         
         if (ghost.direction.y !== 0) {
-            const targetCellY = Math.round(newY);
+            const nextCellY = ghost.direction.y > 0 ? Math.ceil(ghost.y) : Math.floor(ghost.y);
+            const wallCheckY = ghost.direction.y > 0 ? nextCellY : nextCellY - 1;
             
-            if (this.isWall(cellX, targetCellY)) {
-                const wallBoundary = ghost.direction.y > 0 ? targetCellY - 0.5 : targetCellY + 0.5;
-                if ((ghost.direction.y > 0 && newY >= wallBoundary) || 
-                    (ghost.direction.y < 0 && newY <= wallBoundary)) {
-                    newY = wallBoundary;
-                    ghost.direction = this.getRandomDirection(ghost);
+            if (wallCheckY >= 0 && wallCheckY < this.config.mapHeight) {
+                if (this.isWall(cellX, wallCheckY)) {
+                    const wallBoundary = ghost.direction.y > 0 ? nextCellY - 0.5 : nextCellY + 0.5;
+                    
+                    if ((ghost.direction.y > 0 && targetY >= wallBoundary) || 
+                        (ghost.direction.y < 0 && targetY <= wallBoundary)) {
+                        ghost.y = wallBoundary;
+                        ghost.direction = this.getRandomDirection(ghost);
+                        return;
+                    }
                 }
             }
+            
+            ghost.y = targetY;
         }
-        
-        ghost.x = newX;
-        ghost.y = newY;
         
         if (ghost.x <= -0.5) ghost.x = this.config.mapWidth - 0.5;
         if (ghost.x >= this.config.mapWidth - 0.5) ghost.x = -0.5;
