@@ -9,8 +9,8 @@ class PacmanGame {
             powerPelletScore: 50,
             ghostKillScore: 200,
             playerLives: 3,
-            playerSpeed: 0.15,
-            ghostSpeed: 0.12,
+            playerSpeed: 0.08,
+            ghostSpeed: 0.06,
             powerPelletDuration: 10000,
             speedBoostDuration: 5000,
             invincibilityDuration: 5000,
@@ -414,80 +414,81 @@ class PacmanGame {
     }
     
     updatePlayer(player, deltaTime) {
-        if (player.nextDirection !== this.directions.none) {
-            const nextX = Math.round(player.x) + player.nextDirection.x;
-            const nextY = Math.round(player.y) + player.nextDirection.y;
+        const cellX = Math.round(player.x);
+        const cellY = Math.round(player.y);
+        
+        const isAtCenter = Math.abs(player.x - cellX) < 0.05 && Math.abs(player.y - cellY) < 0.05;
+        
+        if (isAtCenter) {
+            player.x = cellX;
+            player.y = cellY;
             
-            if (!this.isWall(nextX, nextY)) {
-                player.direction = player.nextDirection;
-                player.nextDirection = this.directions.none;
+            if (player.nextDirection !== this.directions.none) {
+                const nextX = cellX + player.nextDirection.x;
+                const nextY = cellY + player.nextDirection.y;
+                
+                if (!this.isWall(nextX, nextY)) {
+                    player.direction = player.nextDirection;
+                    player.nextDirection = this.directions.none;
+                }
+            }
+            
+            const newDirectionX = cellX + player.direction.x;
+            const newDirectionY = cellY + player.direction.y;
+            
+            if (this.isWall(newDirectionX, newDirectionY)) {
+                player.direction = this.directions.none;
             }
         }
         
+        if (player.direction === this.directions.none) return;
+        
         const speed = player.hasSpeedBoost ? player.speed * 2 : player.speed;
-        const newX = player.x + player.direction.x * speed * deltaTime * 60;
-        const newY = player.y + player.direction.y * speed * deltaTime * 60;
+        const moveAmount = speed * deltaTime * 60;
+        
+        let newX = player.x + player.direction.x * moveAmount;
+        let newY = player.y + player.direction.y * moveAmount;
         
         if (player.direction.x !== 0) {
-            const targetX = Math.round(newX);
-            const targetY = Math.round(player.y);
+            const targetCellX = Math.round(newX);
             
-            if (!this.isWall(targetX, targetY)) {
-                player.x = newX;
-            } else {
-                player.x = Math.round(player.x);
+            if (this.isWall(targetCellX, cellY)) {
+                const wallBoundary = player.direction.x > 0 ? targetCellX - 0.5 : targetCellX + 0.5;
+                if ((player.direction.x > 0 && newX >= wallBoundary) || 
+                    (player.direction.x < 0 && newX <= wallBoundary)) {
+                    newX = wallBoundary;
+                    player.direction = this.directions.none;
+                }
             }
         }
         
         if (player.direction.y !== 0) {
-            const targetX = Math.round(player.x);
-            const targetY = Math.round(newY);
+            const targetCellY = Math.round(newY);
             
-            if (!this.isWall(targetX, targetY)) {
-                player.y = newY;
-            } else {
-                player.y = Math.round(player.y);
+            if (this.isWall(cellX, targetCellY)) {
+                const wallBoundary = player.direction.y > 0 ? targetCellY - 0.5 : targetCellY + 0.5;
+                if ((player.direction.y > 0 && newY >= wallBoundary) || 
+                    (player.direction.y < 0 && newY <= wallBoundary)) {
+                    newY = wallBoundary;
+                    player.direction = this.directions.none;
+                }
             }
         }
         
-        if (player.x < 0) player.x = this.config.mapWidth - 1;
-        if (player.x >= this.config.mapWidth) player.x = 0;
+        player.x = newX;
+        player.y = newY;
+        
+        if (player.x < -0.5) player.x = this.config.mapWidth - 0.5;
+        if (player.x >= this.config.mapWidth - 0.5) player.x = -0.5;
     }
     
     updateGhost(ghost, deltaTime) {
-        if (ghost.direction === this.directions.none) {
-            ghost.direction = this.getRandomDirection(ghost);
-        }
-        
-        const speed = ghost.isScared ? ghost.speed * 0.5 : ghost.speed;
-        const newX = ghost.x + ghost.direction.x * speed * deltaTime * 60;
-        const newY = ghost.y + ghost.direction.y * speed * deltaTime * 60;
-        
-        const targetX = Math.round(newX);
-        const targetY = Math.round(newY);
-        
-        if (ghost.direction.x !== 0) {
-            if (!this.isWall(targetX, Math.round(ghost.y))) {
-                ghost.x = newX;
-            } else {
-                ghost.x = Math.round(ghost.x);
-                ghost.direction = this.getNewDirection(ghost);
-            }
-        }
-        
-        if (ghost.direction.y !== 0) {
-            if (!this.isWall(Math.round(ghost.x), targetY)) {
-                ghost.y = newY;
-            } else {
-                ghost.y = Math.round(ghost.y);
-                ghost.direction = this.getNewDirection(ghost);
-            }
-        }
-        
         const cellX = Math.round(ghost.x);
         const cellY = Math.round(ghost.y);
         
-        if (Math.abs(ghost.x - cellX) < 0.1 && Math.abs(ghost.y - cellY) < 0.1) {
+        const isAtCenter = Math.abs(ghost.x - cellX) < 0.05 && Math.abs(ghost.y - cellY) < 0.05;
+        
+        if (isAtCenter) {
             ghost.x = cellX;
             ghost.y = cellY;
             
@@ -503,8 +504,45 @@ class PacmanGame {
             }
         }
         
-        if (ghost.x < 0) ghost.x = this.config.mapWidth - 1;
-        if (ghost.x >= this.config.mapWidth) ghost.x = 0;
+        if (ghost.direction === this.directions.none) return;
+        
+        const speed = ghost.isScared ? ghost.speed * 0.5 : ghost.speed;
+        const moveAmount = speed * deltaTime * 60;
+        
+        let newX = ghost.x + ghost.direction.x * moveAmount;
+        let newY = ghost.y + ghost.direction.y * moveAmount;
+        
+        if (ghost.direction.x !== 0) {
+            const targetCellX = Math.round(newX);
+            
+            if (this.isWall(targetCellX, cellY)) {
+                const wallBoundary = ghost.direction.x > 0 ? targetCellX - 0.5 : targetCellX + 0.5;
+                if ((ghost.direction.x > 0 && newX >= wallBoundary) || 
+                    (ghost.direction.x < 0 && newX <= wallBoundary)) {
+                    newX = wallBoundary;
+                    ghost.direction = this.getRandomDirection(ghost);
+                }
+            }
+        }
+        
+        if (ghost.direction.y !== 0) {
+            const targetCellY = Math.round(newY);
+            
+            if (this.isWall(cellX, targetCellY)) {
+                const wallBoundary = ghost.direction.y > 0 ? targetCellY - 0.5 : targetCellY + 0.5;
+                if ((ghost.direction.y > 0 && newY >= wallBoundary) || 
+                    (ghost.direction.y < 0 && newY <= wallBoundary)) {
+                    newY = wallBoundary;
+                    ghost.direction = this.getRandomDirection(ghost);
+                }
+            }
+        }
+        
+        ghost.x = newX;
+        ghost.y = newY;
+        
+        if (ghost.x < -0.5) ghost.x = this.config.mapWidth - 0.5;
+        if (ghost.x >= this.config.mapWidth - 0.5) ghost.x = -0.5;
     }
     
     getRandomDirection(ghost) {
@@ -844,32 +882,34 @@ class PacmanGame {
         let title, message;
         
         if (player1Lives <= 0 && player2Lives <= 0) {
-            title = '游戏结束';
+            title = '游戏结束 - 双方同归于尽!';
             if (player1Score > player2Score) {
-                message = `双方同归于尽! 玩家1 得分更高: ${player1Score} 分`;
+                message = `玩家1 得分更高: ${player1Score} 分 vs 玩家2: ${player2Score} 分`;
             } else if (player2Score > player1Score) {
-                message = `双方同归于尽! 玩家2 得分更高: ${player2Score} 分`;
+                message = `玩家2 得分更高: ${player2Score} 分 vs 玩家1: ${player1Score} 分`;
             } else {
-                message = `双方同归于尽! 平局: ${player1Score} 分`;
+                message = `平局! 双方得分: ${player1Score} 分`;
             }
         } else if (player1Lives <= 0) {
             title = '玩家2 获胜!';
-            message = `玩家2 得分: ${player2Score} 分, 玩家1 得分: ${player1Score} 分`;
+            message = `玩家1 生命耗尽 (得分: ${player1Score})<br>玩家2 存活 (得分: ${player2Score})`;
         } else if (player2Lives <= 0) {
             title = '玩家1 获胜!';
-            message = `玩家1 得分: ${player1Score} 分, 玩家2 得分: ${player2Score} 分`;
-        } else if (player1Score > player2Score) {
-            title = '玩家1 获胜!';
-            message = `玩家1: ${player1Score} 分 vs 玩家2: ${player2Score} 分`;
-        } else if (player2Score > player1Score) {
-            title = '玩家2 获胜!';
-            message = `玩家2: ${player2Score} 分 vs 玩家1: ${player1Score} 分`;
+            message = `玩家2 生命耗尽 (得分: ${player2Score})<br>玩家1 存活 (得分: ${player1Score})`;
         } else {
-            title = '平局!';
-            message = `双方得分: ${player1Score} 分`;
+            if (player1Score > player2Score) {
+                title = '玩家1 获胜!';
+                message = `时间结束! 玩家1: ${player1Score} 分 vs 玩家2: ${player2Score} 分`;
+            } else if (player2Score > player1Score) {
+                title = '玩家2 获胜!';
+                message = `时间结束! 玩家2: ${player2Score} 分 vs 玩家1: ${player1Score} 分`;
+            } else {
+                title = '平局!';
+                message = `时间结束! 双方得分: ${player1Score} 分`;
+            }
         }
         
-        this.showOverlay(title, message + '<br>按空格键重新开始');
+        this.showOverlay(title, message + '<br><br>按空格键重新开始');
     }
     
     showOverlay(title, message) {
