@@ -478,7 +478,7 @@ class PacmanGame {
         player.x = newX;
         player.y = newY;
         
-        if (player.x < -0.5) player.x = this.config.mapWidth - 0.5;
+        if (player.x <= -0.5) player.x = this.config.mapWidth - 0.5;
         if (player.x >= this.config.mapWidth - 0.5) player.x = -0.5;
     }
     
@@ -541,7 +541,7 @@ class PacmanGame {
         ghost.x = newX;
         ghost.y = newY;
         
-        if (ghost.x < -0.5) ghost.x = this.config.mapWidth - 0.5;
+        if (ghost.x <= -0.5) ghost.x = this.config.mapWidth - 0.5;
         if (ghost.x >= this.config.mapWidth - 0.5) ghost.x = -0.5;
     }
     
