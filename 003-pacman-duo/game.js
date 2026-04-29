@@ -733,10 +733,9 @@ class PacmanGame {
         player.isAlive = false;
         
         if (player.lives <= 0) {
-            const otherPlayer = this.players.find(p => p.id !== player.id);
-            if (otherPlayer.lives <= 0) {
+            setTimeout(() => {
                 this.endGame();
-            }
+            }, 500);
         } else {
             const startPos = player.id === 1 ? this.player1StartPos : this.player2StartPos;
             
@@ -831,6 +830,8 @@ class PacmanGame {
     }
     
     endGame() {
+        if (this.gameState === 'gameOver') return;
+        
         this.gameState = 'gameOver';
         if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
         if (this.timer) clearInterval(this.timer);
@@ -844,13 +845,19 @@ class PacmanGame {
         
         if (player1Lives <= 0 && player2Lives <= 0) {
             title = '游戏结束';
-            message = '双方同归于尽!';
+            if (player1Score > player2Score) {
+                message = `双方同归于尽! 玩家1 得分更高: ${player1Score} 分`;
+            } else if (player2Score > player1Score) {
+                message = `双方同归于尽! 玩家2 得分更高: ${player2Score} 分`;
+            } else {
+                message = `双方同归于尽! 平局: ${player1Score} 分`;
+            }
         } else if (player1Lives <= 0) {
             title = '玩家2 获胜!';
-            message = `玩家2 得分: ${player2Score}`;
+            message = `玩家2 得分: ${player2Score} 分, 玩家1 得分: ${player1Score} 分`;
         } else if (player2Lives <= 0) {
             title = '玩家1 获胜!';
-            message = `玩家1 得分: ${player1Score}`;
+            message = `玩家1 得分: ${player1Score} 分, 玩家2 得分: ${player2Score} 分`;
         } else if (player1Score > player2Score) {
             title = '玩家1 获胜!';
             message = `玩家1: ${player1Score} 分 vs 玩家2: ${player2Score} 分`;
